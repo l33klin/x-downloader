@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const cors = require('cors');
 const path = require('path');
 const { spawn } = require('child_process');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,11 +15,11 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from the public directory
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../build')));
 
 // Store active downloads
 const activeDownloads = new Map();
-
+const cookiesPath = path.join(__dirname, 'config', 'cookies.txt');
 // WebSocket connection handler
 wss.on('connection', (ws) => {
     console.log('Client connected');
@@ -42,8 +43,12 @@ app.post('/api/download', (req, res) => {
     const downloadId = Date.now().toString();
     console.log('Starting download with ID:', downloadId, 'for URL:', url);
 
-    // Start the gallery-dl process
-    const process = spawn('gallery-dl', [url]);
+    // Start the gallery-dl process with additional parameters
+    const process = spawn('gallery-dl', [
+        url,
+        '--verbose',
+        '--cookies', cookiesPath
+    ]);
     
     // Store the process
     activeDownloads.set(downloadId, process);
@@ -78,6 +83,20 @@ app.post('/api/download', (req, res) => {
         });
     });
 
+    process.on('error', (error) => {
+        console.error('Process error:', error);
+        wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                    type: 'error',
+                    downloadId,
+                    message: 'Download process error: ' + error.message
+                }));
+            }
+        });
+        activeDownloads.delete(downloadId);
+    });
+
     process.on('close', (code) => {
         console.log('Download process closed with code:', code);
         const status = code === 0 ? 'complete' : 'error';
@@ -88,7 +107,6 @@ app.post('/api/download', (req, res) => {
                 client.send(JSON.stringify({
                     type: status,
                     downloadId,
-                    code,
                     message
                 }));
             }
@@ -129,12 +147,31 @@ app.post('/api/cancel/:downloadId', (req, res) => {
     }
 });
 
-// Serve the React app for all other routes
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+// Endpoint to update cookies file
+const upload = multer({ dest: 'uploads/' });
+app.post('/api/update-cookies', upload.single('cookies'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fs = require('fs');
+    const cookiesPath = path.join(__dirname, 'path/to/your/cookies/file'); // Update with actual path
+
+    fs.writeFile(cookiesPath, req.file.buffer, (err) => {
+        if (err) {
+            console.error('Error writing cookies file:', err);
+            return res.status(500).json({ error: 'Failed to update cookies file' });
+        }
+        res.status(200).json({ message: 'Cookies file updated successfully' });
+    });
 });
 
-const PORT = process.env.PORT || 3001;
+// Serve the React app for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../build/index.html'));
+});
+
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

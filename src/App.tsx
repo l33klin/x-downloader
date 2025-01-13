@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input, Button, List, Progress, Card, message, Collapse } from 'antd';
+import { InputRef } from 'antd/es/input';
 import { DownloadOutlined, CaretRightOutlined } from '@ant-design/icons';
 import './App.css';
 
@@ -21,6 +22,13 @@ function App() {
   const [url, setUrl] = useState('');
   const [records, setRecords] = useState<DownloadRecord[]>([]);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+
+  const fileInputRef = useRef<InputRef | null>(null);
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.input?.click();
+  };
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -65,6 +73,11 @@ function App() {
       console.error('WebSocket error:', error);
       message.error('Connection error occurred');
     };
+
+    websocket.onclose = () => {
+      console.log('WebSocket disconnected');
+      // Implement reconnection logic here
+  };
 
     setWs(websocket);
 
@@ -133,6 +146,57 @@ function App() {
     }
   };
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+        const file = event.target.files[0];
+
+        const formData = new FormData();
+        formData.append('cookies', file);
+
+        try {
+            const response = await fetch(`${API_URL}/update-cookies`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                message.success('Cookies file updated successfully.');
+            } else {
+                message.error('Failed to update cookies file.');
+            }
+        } catch (error) {
+            console.error('Error uploading cookies file:', error);
+            message.error('An error occurred while uploading the file.');
+        }
+    }
+};
+
+  const handleUpload = async () => {
+    if (!file) {
+      message.error('Please select a cookies file first.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('cookies', file);
+
+    try {
+      const response = await fetch(`${API_URL}/update-cookies`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        message.success('Cookies file updated successfully.');
+      } else {
+        message.error('Failed to update cookies file.');
+      }
+    } catch (error) {
+      console.error('Error uploading cookies file:', error);
+      message.error('An error occurred while uploading the file.');
+    }
+  };
+
   const toggleLogs = (recordId: string) => {
     setRecords(prev => prev.map(record => 
       record.id === recordId
@@ -145,6 +209,10 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>X-Downloader</h1>
+        <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+          <Button type="primary" onClick={handleButtonClick}>Upload Cookies File</Button>
+          <Input type="file" ref={fileInputRef} onChange={handleFileChange} accept="text/plain" style={{ display: 'none' }} />
+        </div>
       </header>
       <main className="App-main">
         <Card className="download-card">

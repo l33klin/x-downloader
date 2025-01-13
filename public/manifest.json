@@ -1,6 +1,6 @@
 {
   "short_name": "X-Downloader",
-  "name": "X-Downloader Application",
+  "name": "X-Downloader - Media Downloader for X.com",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#1890ff",
   "background_color": "#ffffff"
 }

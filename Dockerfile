@@ -39,8 +39,9 @@ RUN apt-get update && \
 # Install gallery-dl
 RUN pip install --no-cache-dir gallery-dl
 
-# Create necessary directories
-RUN mkdir -p /app/server/config /app/server/uploads /app/gallery-dl
+# Create necessary directories with proper permissions for non-root users
+RUN mkdir -p /app/server/config /app/server/uploads /app/gallery-dl && \
+    chmod -R 777 /app/server/config /app/server/uploads /app/gallery-dl
 
 # Copy server files
 COPY --from=server-build /app/node_modules /app/server/node_modules
@@ -56,6 +57,15 @@ COPY server/config/gallery-dl.conf /app/server/config/
 # Copy start script
 COPY docker-start.sh ./
 RUN chmod +x docker-start.sh
+
+# Create a non-root user and group
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Set ownership of application directories
+RUN chown -R appuser:appuser /app
+
+# Make sure all users can write to these directories
+RUN chmod -R 777 /app/server/uploads /app/server/config /app/gallery-dl
 
 EXPOSE 3000
 

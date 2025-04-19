@@ -51,6 +51,9 @@ docker build -t x-downloader .
 
 # Run the container
 docker run -p 3000:3000 x-downloader
+
+# Run the container with a non-root user
+docker run -p 3000:3000 --user $(id -u):$(id -g) x-downloader
 ```
 
 ### Cookies Authentication
@@ -75,6 +78,20 @@ docker run -p 3000:3000 -e DOWNLOAD_DIR=/app/custom-downloads -v $(pwd)/download
 ```
 
 This will map the `downloads` directory in your current location to the `/app/gallery-dl` directory inside the container, where downloaded files will be stored.
+
+### Running with Non-Root Users
+
+The container is configured to work with non-root users. You can run the container with your current user ID and group ID:
+
+```bash
+# Run with your current user ID and group ID
+docker run -p 3000:3000 --user $(id -u):$(id -g) x-downloader
+
+# Run with your current user and a mounted volume
+docker run -p 3000:3000 --user $(id -u):$(id -g) -v $(pwd)/downloads:/app/gallery-dl x-downloader
+```
+
+This ensures that all files created by the container will be owned by your user, and the application will have the necessary permissions to function correctly.
 
 **Note for Windows users:** When using Command Prompt or PowerShell, replace `$(pwd)` with the absolute path or use `%cd%` (CMD) or `${PWD}` (PowerShell):
 

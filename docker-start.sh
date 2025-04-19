@@ -10,9 +10,13 @@ ls -la /app/server
 echo "Checking gallery-dl installation..."
 gallery-dl --version || echo "gallery-dl not found or not working!"
 
-# Create necessary directories
+# Create necessary directories with proper permissions
 mkdir -p /app/server/uploads
 mkdir -p /app/server/config
+
+# Ensure directories have proper permissions for non-root users
+chmod -R 777 /app/server/uploads
+chmod -R 777 /app/server/config
 
 # Check if cookies file exists and inform user
 if [ ! -f "/app/server/config/cookies.txt" ]; then

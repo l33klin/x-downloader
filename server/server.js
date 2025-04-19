@@ -236,7 +236,7 @@ app.get('/api/check-cookies', (req, res) => {
 });
 
 // Endpoint to update cookies file
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: path.join(__dirname, 'uploads') });
 app.post('/api/update-cookies', upload.single('cookies'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
